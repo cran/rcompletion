@@ -1,4 +1,5 @@
-	AC_INIT(src/rcompletion.c)
+
+AC_INIT(src/rcompletion.c)
 
 ## we need to get the same settings that R will use to compile this
 ## otherwise we may be testing the wrong compiler or flags
@@ -11,15 +12,19 @@ fi
 #echo ${R_HOME}
 CC=`"${R_HOME}/bin/R" CMD config CC`
 CFLAGS=`"${R_HOME}/bin/R" CMD config CFLAGS`
+CPPFLAGS=`"${R_HOME}/bin/R" CMD config CPPFLAGS`
 LIBR=`"${R_HOME}/bin/R" CMD config --ldflags 2>/dev/null`
 LIBS="${LIBR}"
 
 #echo "CFLAGS=${CFLAGS}"
+#echo "CPPFLAGS=${CPPFLAGS}"
 #echo "LIBS=${LIBS}"
 
 r_sav_CFLAGS="${CFLAGS}"
+r_sav_CPPFLAGS="${CPPFLAGS}"
 r_sav_LIBS="${LIBS}"
 CFLAGS="${PKG_CFLAGS} ${CFLAGS}"
+CPPFLAGS="${PKG_CPPFLAGS} ${CPPFLAGS}"
 LIBS="${PKG_LIBS} ${LIBS}"
 
 AC_CHECK_HEADERS([readline/readline.h],
@@ -77,17 +82,20 @@ fi
 
 ### remove flags that R will add during package compilation anyway
 PKG_CFLAGS=`echo "${CFLAGS}" | sed "s|${r_sav_CFLAGS}| |"`
+PKG_CPPFLAGS=`echo "${CPPFLAGS}" | sed "s|${r_sav_CPPFLAGS}| |"`
 PKG_LIBS=`echo "${LIBS}" | sed "s|${r_sav_LIBS}| |"`
 
 # uncomment this for debugging to see the flags used
 #echo "CFLAGS=${CFLAGS}"
+#echo "CPPFLAGS=${CPPFLAGS}"
 #echo "LIBS=${LIBS}"
 #echo "PKG_CFLAGS=${PKG_CFLAGS}"
+#echo "PKG_CPPFLAGS=${PKG_CPPFLAGS}"
 #echo "PKG_LIBS=${PKG_LIBS}"
 
 AC_SUBST(PKG_CFLAGS)
+AC_SUBST(PKG_CPPFLAGS)
 AC_SUBST(PKG_LIBS)
 
 AC_OUTPUT(src/Makevars)
-
 

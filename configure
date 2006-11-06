@@ -646,6 +646,7 @@ CPP
 GREP
 EGREP
 PKG_CFLAGS
+PKG_CPPFLAGS
 PKG_LIBS
 LIBOBJS
 LTLIBOBJS'
@@ -1666,15 +1667,19 @@ fi
 #echo ${R_HOME}
 CC=`"${R_HOME}/bin/R" CMD config CC`
 CFLAGS=`"${R_HOME}/bin/R" CMD config CFLAGS`
+CPPFLAGS=`"${R_HOME}/bin/R" CMD config CPPFLAGS`
 LIBR=`"${R_HOME}/bin/R" CMD config --ldflags 2>/dev/null`
 LIBS="${LIBR}"
 
 #echo "CFLAGS=${CFLAGS}"
+#echo "CPPFLAGS=${CPPFLAGS}"
 #echo "LIBS=${LIBS}"
 
 r_sav_CFLAGS="${CFLAGS}"
+r_sav_CPPFLAGS="${CPPFLAGS}"
 r_sav_LIBS="${LIBS}"
 CFLAGS="${PKG_CFLAGS} ${CFLAGS}"
+CPPFLAGS="${PKG_CPPFLAGS} ${CPPFLAGS}"
 LIBS="${PKG_LIBS} ${LIBS}"
 
 ac_ext=c
@@ -4059,13 +4064,17 @@ fi
 
 ### remove flags that R will add during package compilation anyway
 PKG_CFLAGS=`echo "${CFLAGS}" | sed "s|${r_sav_CFLAGS}| |"`
+PKG_CPPFLAGS=`echo "${CPPFLAGS}" | sed "s|${r_sav_CPPFLAGS}| |"`
 PKG_LIBS=`echo "${LIBS}" | sed "s|${r_sav_LIBS}| |"`
 
 # uncomment this for debugging to see the flags used
 #echo "CFLAGS=${CFLAGS}"
+#echo "CPPFLAGS=${CPPFLAGS}"
 #echo "LIBS=${LIBS}"
 #echo "PKG_CFLAGS=${PKG_CFLAGS}"
+#echo "PKG_CPPFLAGS=${PKG_CPPFLAGS}"
 #echo "PKG_LIBS=${PKG_LIBS}"
+
 
 
 
@@ -4735,12 +4744,13 @@ CPP!$CPP$ac_delim
 GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
 PKG_CFLAGS!$PKG_CFLAGS$ac_delim
+PKG_CPPFLAGS!$PKG_CPPFLAGS$ac_delim
 PKG_LIBS!$PKG_LIBS$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 51; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 52; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
@@ -5066,6 +5076,5 @@ if test "$no_create" != yes; then
   # would make configure fail if this is the last instruction.
   $ac_cs_success || { (exit 1); exit 1; }
 fi
-
 
 

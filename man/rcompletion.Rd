@@ -2,6 +2,8 @@
 \alias{rcompletion-package}
 \alias{rc.settings}
 \alias{rc.status}
+\alias{rc.getOption}
+\alias{rc.options}
 \title{Completion for \R using the GNU Readline library}
 
 \description{
@@ -17,6 +19,9 @@
 rc.settings(ops, ns, args)
 rc.status()
 
+rc.getOption(name)
+rc.options(\dots)
+
 }
 
 \arguments{
@@ -28,6 +33,12 @@ rc.status()
     are turned on by default.  Turn these off if your CPU cycles are
     valuable; you will still retain basic completion on names of objects
     in the search list.  See note below for additional details.
+  }
+  \item{name, \dots}{ user-settable options.  Currently valid names are
+    \code{function.suffix} (default \code{"("}),
+    \code{funarg.suffix} (default \code{" = "}) and
+    \code{package.suffix} (default \code{"::"}).  See
+    \code{\link{options}} for detailed usage description
   }
 }
 
@@ -138,6 +149,9 @@ rc.status()
   temptation to use completion when typing the call to \code{rc.status}
   itself, as that then becomes the last attempt by the time the call is
   executed.
+
+  \code{rc.getOption} and \code{rc.options} behave much like
+  \code{\link{getOption}} and \code{\link{options}} respectively.
 }
 
 \note{

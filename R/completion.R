@@ -33,6 +33,18 @@
 
 
 
+### Note: sprintf seems faster based on naive benchmarking:
+
+## > system.time(for (i in 1:100000) sprintf("foo%sbar%d", letters[1:26], 1:26) )
+##            user          system           total   user.children system.children
+##           4.796           0.088           4.887           0.000           0.000
+## > system.time(for (i in 1:100000) paste("foo", letters[1:26], "bar", 1:26) )
+##            user          system           total   user.children system.children
+##           8.300           0.028           8.336           0.000           0.000
+
+### so will change all pastes to sprintf.
+
+
 
 ## modifies settings:
 
@@ -49,6 +61,44 @@ rc.settings <- function(ops, ns, args)
     if (!missing(ns))   checkAndChange(  "ns",   ns)
     if (!missing(args)) checkAndChange("args", args)
 }
+
+
+
+
+
+## modifies options (adapted from similar functions in lattice):
+
+rc.getOption <- function(name)
+{
+    get("options", envir = .CompletionEnv)[[name]]
+}
+
+rc.options <- function(...)
+{
+    new <- list(...)
+    if (is.null(names(new)) && length(new) == 1 && is.list(new[[1]]))
+        new <- new[[1]]
+    old <- .CompletionEnv$options
+
+    ## if no args supplied, returns full options list
+    if (length(new) == 0) return(old)
+    ## typically getting options
+    nm <- names(new)
+    if (is.null(nm)) return(old[unlist(new)])
+
+    isNamed <- nm != ""
+    if (any(!isNamed)) nm[!isNamed] <- unlist(new[!isNamed])
+
+    ## so now everything has non-"" names, but only the isNamed ones
+    ## should be set.  Everything should be returned though.
+
+    retVal <- old[nm]
+    names(retVal) <- nm
+    nm <- nm[isNamed]
+    .CompletionEnv$options <- modifyList(old, new[nm])
+    invisible(retVal)
+}
+
 
 
 ## summarizes results of last completion attempt:
@@ -120,7 +170,7 @@ specialOpLocs <- function(text)
 helpCompletions <- function(prefix, suffix)
 {
     nc <- normalCompletions(suffix, check.mode = FALSE)
-    if (length(nc) > 0) paste(prefix, nc, sep = "?")
+    if (length(nc) > 0) sprintf("%s?%s", prefix, nc)
     else character(0)
 }
 
@@ -175,11 +225,14 @@ specialCompletions <- function(text, spl)
                        {
                            ## suffix must match names(object) (or ls(object) for environments)
                            if (is.environment(object))
+                           {
                                ls(object,
                                   all.names = TRUE,
-                                  pattern = paste("^", makeRegexpSafe(suffix), sep = ""))
-                           else {
-                               grep(paste("^", makeRegexpSafe(suffix), sep = ""),
+                                  pattern = sprintf("^%s", makeRegexpSafe(suffix)))
+                           }
+                           else
+                           {
+                               grep(sprintf("^%s", makeRegexpSafe(suffix)),
                                     names(object), value = TRUE)
                            }
                        }
@@ -193,7 +246,7 @@ specialCompletions <- function(text, spl)
                            suffix
                        else
                        {
-                           grep(paste("^", makeRegexpSafe(suffix), sep = ""),
+                           grep(sprintf("^%s", makeRegexpSafe(suffix)),
                                 slotNames(object), value = TRUE)
                        }
                    } else suffix
@@ -206,7 +259,7 @@ specialCompletions <- function(text, spl)
                            suffix
                        else
                        {
-                           grep(paste("^", makeRegexpSafe(suffix), sep = ""),
+                           grep(sprintf("^%s", makeRegexpSafe(suffix)),
                                 nse, value = TRUE)
                        }
                    } else suffix
@@ -221,7 +274,7 @@ specialCompletions <- function(text, spl)
                        {
                            ls(ns,
                               all.names = TRUE,
-                              pattern = paste("^", makeRegexpSafe(suffix), sep = ""))
+                              pattern = sprintf("^%s", makeRegexpSafe(suffix)))
                        }
                    } else suffix
                },
@@ -231,7 +284,7 @@ specialCompletions <- function(text, spl)
                    if (length(comps) > 0) comps
                    else suffix
                })
-    paste(prefix, comps, sep = op)
+    sprintf("%s%s%s", prefix, op, comps)
 }
 
 
@@ -245,7 +298,7 @@ specialCompletions <- function(text, spl)
 
 keywordCompletions <- function(text)
 {
-    grep(paste("^", makeRegexpSafe(text), sep = ""),
+    grep(sprintf("^%s", makeRegexpSafe(text)),
          c("NULL", "NA", "TRUE", "FALSE", "GLOBAL.ENV", "Inf", "NaN",
            "repeat ", "in ", "next ", "break "),
          value = TRUE)
@@ -255,17 +308,19 @@ keywordCompletions <- function(text)
 ## with a :: IIRC, that works even if there's no namespace, but I
 ## haven't actually checked.
 
-attachedPackageCompletions <- function(text)
+
+
+attachedPackageCompletions <- function(text, add = rc.getOption("package.suffix"))
 {
     if (.CompletionEnv$settings[["ns"]])
     {
         s <- grep("^package", search(), value = TRUE)
         comps <- 
-            grep(paste("^", makeRegexpSafe(text), sep = ""),
+            grep(sprintf("^%s", makeRegexpSafe(text)),
                  substr(s, 9, 1e6),
                  value = TRUE)
-        if (length(comps) > 0)
-            paste(comps, "::", sep = "")
+        if (length(comps) > 0 && !is.null(add))
+            sprintf("%s%s", comps, add)
         else
             comps
     }
@@ -279,20 +334,22 @@ attachedPackageCompletions <- function(text)
 ## attached packages if settings$ns == TRUE
 
 
-normalCompletions <- function(text, check.mode = TRUE)
+normalCompletions <-
+    function(text, check.mode = TRUE,
+             add.fun = rc.getOption("function.suffix"))
 {
     ## use apropos or equivalent
     if (text == "") character() ## too many otherwise
     else
     {
-        comps <- apropos(paste("^", makeRegexpSafe(text), sep = ""))
-        if (check.mode)
+        comps <- apropos(sprintf("^%s", makeRegexpSafe(text)))
+        if (check.mode && !is.null(add.fun))
         {
             which.function <- sapply(comps, function(s) exists(s, mode = "function"))
             if (is.logical(which.function))
                 comps[which.function] <-
-                    paste(comps[which.function],
-                          "(", sep = "")
+                    sprintf("%s%s", comps[which.function], add.fun)
+            ##sprintf("\033[31m%s\033[0m%s", comps[which.function], add.fun)
         }
         c(comps, keywordCompletions(text), attachedPackageCompletions(text))
     }
@@ -389,7 +446,9 @@ argNames <-
 }
 
 
-functionArgs <- function(fun, text, S3methods = TRUE, S4methods = FALSE)
+functionArgs <-
+    function(fun, text, S3methods = TRUE, S4methods = FALSE,
+             add.args = rc.getOption("funarg.suffix"))
 {
     if (length(fun) < 1 || any(fun == "")) return(character(0))
     if (S3methods && exists(fun, mode = "function"))
@@ -402,10 +461,11 @@ functionArgs <- function(fun, text, S3methods = TRUE, S4methods = FALSE)
         warning("Can't handle S4 methods yet")
     allArgs <- unique(unlist(lapply(fun, argNames)))
     ans <-
-        grep(paste("^", makeRegexpSafe(text), sep = ""),
+        grep(sprintf("^%s", makeRegexpSafe(text)),
              allArgs, value = TRUE)
-    if (length(ans) > 0) ans <- paste(ans, " = ", sep = "")
-    ans
+    if (length(ans) > 0 && !is.null(add.args))
+        sprintf("%s%s", ans, add.args)
+    else ans
 }
 
 
