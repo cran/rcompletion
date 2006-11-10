@@ -42,7 +42,8 @@
 ##            user          system           total   user.children system.children
 ##           8.300           0.028           8.336           0.000           0.000
 
-### so will change all pastes to sprintf.
+### so will change all pastes to sprintf.  However, we need to be
+### careful because 0 length components in sprintf will cause errors.
 
 
 
@@ -284,6 +285,7 @@ specialCompletions <- function(text, spl)
                    if (length(comps) > 0) comps
                    else suffix
                })
+    if (length(comps) == 0) comps <- ""
     sprintf("%s%s%s", prefix, op, comps)
 }
 
@@ -346,7 +348,7 @@ normalCompletions <-
         if (check.mode && !is.null(add.fun))
         {
             which.function <- sapply(comps, function(s) exists(s, mode = "function"))
-            if (is.logical(which.function))
+            if (any(which.function))
                 comps[which.function] <-
                     sprintf("%s%s", comps[which.function], add.fun)
             ##sprintf("\033[31m%s\033[0m%s", comps[which.function], add.fun)
