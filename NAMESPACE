@@ -1,16 +1,6 @@
 
 useDynLib(rcompletion, .registration = TRUE)
 
-## might need more imports (check with codetools)
-
-import(utils)
-importFrom(methods, slotNames)
-
-
-export(rc.status,           # helps debug
-       rc.getOption,        # options...
-       rc.options,          #  (user settable suffixes)
-       rc.settings)         # settings (ops, ns, args)
 
        
 

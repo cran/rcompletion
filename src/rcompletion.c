@@ -49,12 +49,11 @@ SEXP RCompletionInit()
     return R_NilValue;
 }
 
-
-SEXP RCSuppressFileCompletion()
-{
-    rl_attempted_completion_over = 1;
-    return R_NilValue;
-}
+/* SEXP RCSuppressFileCompletion() */
+/* { */
+/*     rl_attempted_completion_over = 1; */
+/*     return R_NilValue; */
+/* } */
 
 
 /* 
@@ -129,7 +128,13 @@ static void initialize_rlcompletion ()
      be practically impossible, to begin with) */
 
 
-  /* Not sure why the second one is needed */
+  /* 
+     These break line into tokens.  Unfortunately, this also breaks
+     file names, so a path with a - in it will not be completed.
+
+     Not sure why the second one is needed.  Should play around more
+     with this at some point.
+  */
   rl_basic_word_break_characters = " \t\n\\\"'`><=+-*%;,|&{()}[]";
   rl_completer_word_break_characters = " \t\n\\\"'`><=+-*%;,|&{()}";
   return;
@@ -159,7 +164,8 @@ R_custom_completion(const char *text,
 {
     char **matches = (char **)NULL;
     SEXP 
-	rho            = PROTECT(R_FindNamespace(mkString("rcompletion"))),
+	infile,
+	rho            = PROTECT(R_FindNamespace(mkString("rcompgen"))),
 	linebufferCall = PROTECT(lang2(RComp_assignBufferSym,  mkString(rl_line_buffer))), 
 	startCall      = PROTECT(lang2(RComp_assignStartSym,   ScalarInteger(start))),
 	endCall        = PROTECT(lang2(RComp_assignEndSym,     ScalarInteger(end)));
@@ -167,9 +173,18 @@ R_custom_completion(const char *text,
     eval(startCall, rho);
     eval(endCall, rho);
     UNPROTECT(4);
+
     matches = rl_completion_matches(text, R_completion_generator);
+
+    infile = PROTECT(eval(lang1(RComp_getFileCompSym), rho));
+    if (!asLogical(infile)) rl_attempted_completion_over = 1;
+    UNPROTECT(1);
+
     return (matches);
 }
+
+
+
 
 
 /* R_completion_generator does the actual work (it is called from
@@ -198,7 +213,7 @@ R_completion_generator(const char *text, int state)
 	int i;
 	SEXP 
 	    completions,
-	    rho            = PROTECT(R_FindNamespace(mkString("rcompletion"))),
+	    rho            = PROTECT(R_FindNamespace(mkString("rcompgen"))),
 	    assignCall     = PROTECT(lang2(RComp_assignTokenSym, mkString(text))), 
 	    completionCall = PROTECT(lang1(RComp_completeTokenSym)), 
 	    retrieveCall   = PROTECT(lang1(RComp_retrieveCompsSym));
